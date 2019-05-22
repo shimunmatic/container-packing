@@ -11,7 +11,6 @@ public class Packet extends ThreeDObject {
     private int packetCount;
 
     @Builder
-
     public Packet(int height, int width, int length, int boxTypeId, int packetCount) {
         super(height, width, length);
         this.boxTypeId = boxTypeId;

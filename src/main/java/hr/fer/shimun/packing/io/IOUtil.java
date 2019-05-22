@@ -5,12 +5,11 @@ import hr.fer.shimun.packing.model.Packet;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class IOUtil {
 
-    public static List<InputBasket> loadInpuData(File f) throws IOException {
+    public static List<InputBasket> loadInputData(File f) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
         String line;
         line = bufferedReader.readLine().trim();
@@ -36,9 +35,7 @@ public class IOUtil {
             ib.numberOfBoxTypes(numOfBoxTypes);
             List<Packet> packets = new ArrayList<>();
             bufferedReader.lines().limit(numOfBoxTypes).forEach(l -> {
-                System.out.println(l);
                 String[] packetDim = l.trim().split(" ");
-                System.out.println(Arrays.toString(packetDim));
                 Packet p = Packet.builder().boxTypeId(Integer.parseInt(packetDim[0].trim()))
                                  .length(Integer.parseInt(packetDim[1].trim()))
                                  .width(Integer.parseInt(packetDim[3].trim()))
@@ -50,7 +47,6 @@ public class IOUtil {
             ib.packetList(packets);
             baskets.add(ib.build());
         }
-
         return baskets;
     }
 }
