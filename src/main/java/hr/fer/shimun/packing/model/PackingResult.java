@@ -1,5 +1,6 @@
 package hr.fer.shimun.packing.model;
 
+import hr.fer.shimun.packing.implementation.model.ContainerHolder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,6 +13,6 @@ import java.util.List;
 @ToString
 @AllArgsConstructor
 public class PackingResult {
-    private Container container;
+    private ContainerHolder containerHolder;
     private List<Packet> unpackedPacketList;
 }

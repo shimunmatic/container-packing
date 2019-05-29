@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 public class ContainerHolder extends ThreeDObject {
     private Set<Point> freePoints;
     private Map<Point, Packet> packedPackets;
+    private int[][] matrix;
 
     @Builder
     public ContainerHolder(int height, int width, int length) {
@@ -24,29 +25,34 @@ public class ContainerHolder extends ThreeDObject {
         freePoints.add(new Point(height, width, length, 0, 0, 0));
 
         packedPackets = new HashMap<>();
+        matrix = new int[width][length];
     }
 
     public List<Point> getAvailableStartPositions(Vector<Integer, Integer, Integer> dimensions) {
         // return all freePoints that can be starting freePoints for
-        return freePoints.parallelStream().filter(point -> (point.getPositionX() + dimensions.getX() < width &&
-                                                            point.getPositionY() + dimensions.getY() < length &&
-                                                            point.getPositionZ() + dimensions.getZ() < height) &&
+        return freePoints.parallelStream().filter(point -> (point.getPositionX() + dimensions.getX() < getWidth() &&
+                                                            point.getPositionY() + dimensions.getY() < getLength() &&
+                                                            point.getPositionZ() + dimensions.getZ() < getHeight()) &&
                                                            !packedPackets.containsKey(point) &&
-                                                           packedPackets.keySet().parallelStream().noneMatch(
-                                                                   p -> ((p.getPositionX() >= point.getPositionX() &&
-                                                                          p.getEndPositionX() <=
-                                                                          point.getPositionX() + dimensions.getX()) ||
-                                                                         (p.getPositionY() >= point.getPositionY() &&
-                                                                          p.getEndPositionY() <=
-                                                                          point.getPositionY() + dimensions.getY())) &&
-                                                                        (p.getEndPositionZ() >
-                                                                         point.getEndPositionZ())))
+                                                           canBePacked(point, dimensions))
                          .sorted(Comparator.comparingInt(Point::getPositionZ)).collect(Collectors.toList());
+    }
+
+    private boolean canBePacked(Point point, Vector<Integer, Integer, Integer> dimensions) {
+        int height = matrix[point.getPositionX()][point.getPositionY()];
+        for (int i = 0; i < dimensions.getX(); i++) {
+            for (int j = 0; j < dimensions.getY(); j++) {
+                if (matrix[point.getPositionX() + i][point.getPositionY() + j] != height) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public void addPacketToPoint(Packet packet, Point point) {
         packedPackets.put(point, packet);
-
+        fillMatrix(point, packet);
         freePoints.remove(point);
         if (point.getPositionX() + packet.getWidth() < width) {
             freePoints.add(Point.builder().positionX(point.getPositionX() + packet.getWidth())
@@ -67,6 +73,19 @@ public class ContainerHolder extends ThreeDObject {
                                 .positionZ(point.getPositionZ() + packet.getHeight()).height(packet.getHeight())
                                 .width(packet.getWidth()).length(packet.getLength()).build());
         }
+    }
+
+    private void fillMatrix(Point point, Packet packet) {
+        for (int i = 0; i < packet.getWidth(); i++) {
+            for (int j = 0; j < packet.getLength(); j++) {
+                matrix[point.getPositionX() + i][point.getPositionY() + j] += packet.getHeight();
+            }
+        }
+        // remove points that were covered just now
+        freePoints.removeIf(p -> (p.getPositionX() >= point.getPositionX() &&
+                                  p.getPositionX() < point.getPositionX() + packet.getWidth()) &&
+                                 (p.getPositionY() >= point.getPositionY() &&
+                                  p.getPositionY() < point.getPositionY() + packet.getLength()));
     }
 
 }
