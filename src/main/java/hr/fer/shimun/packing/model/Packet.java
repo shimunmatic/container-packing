@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class Packet extends ThreeDObject {
+public class Packet extends ThreeDObject implements Cloneable {
     private int boxTypeId;
     private int packetCount;
 

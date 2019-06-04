@@ -8,33 +8,75 @@ import hr.fer.shimun.packing.model.PackingResult;
 import hr.fer.shimun.packing.model.Point;
 import hr.fer.shimun.packing.util.Vector;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class GreedyPacking implements ContainerPackingAlgorithm {
+    private boolean notFound = true;
+
     @Override
-    public PackingResult pack(Container container, List<Packet> packetList) {
-
-        ContainerHolder containerHolder =
-                new ContainerHolder(container.getHeight(), container.getWidth(), container.getLength());
-
-        for (Packet packet : packetList) {
-            for (int i = 0; i < packet.getPacketCount(); i++) {
-                Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, 0);
-                for (int j = 1; j < 6; j++) {
-                    List<Point> points = containerHolder.getAvailableStartPositions(vector);
-
-                    if (points.isEmpty()) {
-                        vector = getVectorFromPacketAndOrientation(packet, j);
-                    } else {
-                        packet.setDimensionsFromVector(vector);
-                        containerHolder.addPacketToPoint(packet, points.get(0));
-                        break;
+    public PackingResult pack(Container container, final List<Packet> entryPacketList) {
+        int count = 0;
+        ContainerHolder maxResult = null;
+        ContainerHolder containerHolder = null;
+        while (count < 1000) {
+            count++;
+            if (containerHolder != null && containerHolder.count > maxResult.count) {
+                maxResult = containerHolder;
+            }
+            containerHolder = new ContainerHolder(container.getHeight(), container.getWidth(), container.getLength());
+            List<Packet> packetList = getPacketList(entryPacketList);
+            if (maxResult == null) { maxResult = containerHolder; }
+            try {
+                List<Packet> unpacked = new ArrayList<>();
+                int unpackedIndex;
+                for (int i = 0; i < packetList.size(); i++) {
+                    Packet packet = packetList.get(i);
+                    for (int j = 0; j < 6; j++) {
+                        Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, j);
+                        List<Point> points = containerHolder.getAvailableStartPositions(vector);
+                        if (points.isEmpty()) {
+                            System.out.println("Changing orientation");
+                            if (j == 5) {
+                                unpacked.add(packet);
+                                unpackedIndex = i + 1;
+                                for (int k = unpackedIndex; k < packetList.size(); k++) {
+                                    unpacked.add(packetList.get(k));
+                                }
+                                containerHolder.setUnPackedPackets(unpacked);
+                                throw new Exception("");
+                            }
+                        } else {
+                            packet.setDimensionsFromVector(vector);
+                            Collections.shuffle(points);
+                            containerHolder.addPacketToPoint(packet, points.get(0));
+                            break;
+                        }
                     }
                 }
+                notFound = false;
+                return new PackingResult(containerHolder, null);
+            } catch (Exception e) {
 
+                notFound = true;
             }
         }
-        return new PackingResult(containerHolder, null);
+        return new PackingResult(maxResult, null);
+    }
+
+    private List<Packet> getPacketList(List<Packet> packetList) {
+        List<Packet> pList = new ArrayList<>();
+        packetList.sort(Comparator.comparingInt(value -> value.getHeight() * value.getWidth() * value.getLength()));
+        Collections.reverse(packetList);
+        for (Packet packet : packetList) {
+            for (int i = 0; i < packet.getPacketCount(); i++) {
+                pList.add(new Packet(packet.getHeight(), packet.getWidth(), packet.getLength(), packet.getBoxTypeId(),
+                        packet.getPacketCount()));
+            }
+        }
+        return pList;
     }
 
     private Vector<Integer, Integer, Integer> getVectorFromPacketAndOrientation(Packet packet, int orientation) {

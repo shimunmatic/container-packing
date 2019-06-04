@@ -16,7 +16,9 @@ import java.util.stream.Collectors;
 public class ContainerHolder extends ThreeDObject {
     private Set<Point> freePoints;
     private Map<Point, Packet> packedPackets;
+    private List<Packet> unPackedPackets;
     private int[][] matrix;
+    public int count = 0;
 
     @Builder
     public ContainerHolder(int height, int width, int length) {
@@ -30,19 +32,20 @@ public class ContainerHolder extends ThreeDObject {
 
     public List<Point> getAvailableStartPositions(Vector<Integer, Integer, Integer> dimensions) {
         // return all freePoints that can be starting freePoints for
-        return freePoints.parallelStream().filter(point -> (point.getPositionX() + dimensions.getX() < getWidth() &&
-                                                            point.getPositionY() + dimensions.getY() < getLength() &&
-                                                            point.getPositionZ() + dimensions.getZ() < getHeight()) &&
-                                                           !packedPackets.containsKey(point) &&
-                                                           canBePacked(point, dimensions))
+        return freePoints.stream().filter(point -> (point.getPositionX() + dimensions.getX() < getWidth() &&
+                                                    point.getPositionY() + dimensions.getY() < getLength() &&
+                                                    point.getPositionZ() + dimensions.getZ() < getHeight()) &&
+                                                   !packedPackets.containsKey(point) && canBePacked(point, dimensions))
                          .sorted(Comparator.comparingInt(Point::getPositionZ)).collect(Collectors.toList());
     }
 
     private boolean canBePacked(Point point, Vector<Integer, Integer, Integer> dimensions) {
         int height = matrix[point.getPositionX()][point.getPositionY()];
+        if (point.getPositionZ() < height) { return false; }
         for (int i = 0; i < dimensions.getX(); i++) {
             for (int j = 0; j < dimensions.getY(); j++) {
-                if (matrix[point.getPositionX() + i][point.getPositionY() + j] != height) {
+                if (matrix[point.getPositionX() + i][point.getPositionY() + j] != height ||
+                    point.getPositionZ() + dimensions.getZ() > getHeight()) {
                     return false;
                 }
             }
@@ -76,8 +79,13 @@ public class ContainerHolder extends ThreeDObject {
     }
 
     private void fillMatrix(Point point, Packet packet) {
+        System.out.println(++count);
         for (int i = 0; i < packet.getWidth(); i++) {
             for (int j = 0; j < packet.getLength(); j++) {
+                int newVal = matrix[point.getPositionX() + i][point.getPositionY() + j] + packet.getHeight();
+                if (newVal > getHeight()) {
+                    System.out.println("error");
+                }
                 matrix[point.getPositionX() + i][point.getPositionY() + j] += packet.getHeight();
             }
         }
@@ -88,4 +96,8 @@ public class ContainerHolder extends ThreeDObject {
                                   p.getPositionY() < point.getPositionY() + packet.getLength()));
     }
 
+    public void scanForNewFreePoints() {
+
+
+    }
 }

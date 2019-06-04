@@ -21,5 +21,6 @@ public class GreedyAlgorithmTest {
 
         PackingResult pr = packingAlgorithm.pack(ib.get(0).getContainer(), ib.get(0).getPacketList());
         new ConsolePrinter().print(pr.getContainerHolder());
+        System.out.println(pr.getContainerHolder().getUnPackedPackets().size());
     }
 }
