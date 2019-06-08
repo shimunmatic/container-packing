@@ -34,12 +34,18 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
                 int unpackedIndex;
                 for (int i = 0; i < packetList.size(); i++) {
                     Packet packet = packetList.get(i);
+                    boolean secondTry = false;
                     for (int j = 0; j < 6; j++) {
                         Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, j);
                         List<Point> points = containerHolder.getAvailableStartPositions(vector);
                         if (points.isEmpty()) {
                             System.out.println("Changing orientation");
                             if (j == 5) {
+                                if (!secondTry && containerHolder.scanForNewFreePoints()) {
+                                    j = -1;
+                                    secondTry = true;
+                                    continue;
+                                }
                                 unpacked.add(packet);
                                 unpackedIndex = i + 1;
                                 for (int k = unpackedIndex; k < packetList.size(); k++) {

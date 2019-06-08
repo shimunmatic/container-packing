@@ -96,8 +96,27 @@ public class ContainerHolder extends ThreeDObject {
                                   p.getPositionY() < point.getPositionY() + packet.getLength()));
     }
 
-    public void scanForNewFreePoints() {
+    public boolean scanForNewFreePoints() {
+        List<Point> points = new ArrayList<>();
 
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < length; j++) {
+                if (i == 0) {
+                    if (j == 0 || matrix[i][j] != matrix[i][j - 1]) {
+                        points.add(Point.builder().positionX(i).positionY(j).positionZ(matrix[i][j]).build());
+                    }
+                } else {
+                    if ((j == 0 && matrix[i - 1][j] != matrix[i][j]) ||
+                        (j > 0 && matrix[i][j] != matrix[i][j - 1] && matrix[i - 1][j] != matrix[i][j])) {
+                        points.add(Point.builder().positionX(i).positionY(j).positionZ(matrix[i][j]).build());
+                    }
+                }
+            }
+        }
 
+        freePoints.clear();
+        System.out.println(String.format("Found %d new points.", points.size()));
+        freePoints.addAll(points);
+        return !points.isEmpty();
     }
 }
