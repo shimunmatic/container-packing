@@ -6,10 +6,14 @@ public class ConsolePrinter implements ContainerPrinter {
     @Override
     public void print(ContainerHolder containerHolder) {
 
-        printMatrix(containerHolder.getMatrix(), containerHolder.width, containerHolder.length);
+        printMatrix(containerHolder);
     }
 
-    private void printMatrix(int[][] matrix, int width, int length) {
+    private void printMatrix(ContainerHolder containerHolder) {
+        int width = containerHolder.getWidth();
+        int length = containerHolder.getLength();
+        int[][] matrix = containerHolder.getMatrix();
+        int volumeOfEmptyPackets = containerHolder.getVolumeOfEmptyPackets();
         StringBuilder sb = new StringBuilder();
         int total = 0;
         for (int i = 0; i < width; i++) {
@@ -20,6 +24,6 @@ public class ConsolePrinter implements ContainerPrinter {
             sb.append("\n");
         }
         System.out.println(sb.toString());
-        System.out.println(total);
+        System.out.println(total - volumeOfEmptyPackets);
     }
 }

@@ -7,9 +7,12 @@ import hr.fer.shimun.packing.util.Vector;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -17,8 +20,11 @@ public class ContainerHolder extends ThreeDObject {
     private Set<Point> freePoints;
     private Map<Point, Packet> packedPackets;
     private List<Packet> unPackedPackets;
+    private int volumeOfEmptyPackets = 0;
     private int[][] matrix;
     public int count = 0;
+    private static final Logger logger = LoggerFactory.getLogger(ContainerHolder.class);
+
 
     @Builder
     public ContainerHolder(int height, int width, int length) {
@@ -76,10 +82,10 @@ public class ContainerHolder extends ThreeDObject {
                                 .positionZ(point.getPositionZ() + packet.getHeight()).height(packet.getHeight())
                                 .width(packet.getWidth()).length(packet.getLength()).build());
         }
+        System.out.println("Inserted");
     }
 
     private void fillMatrix(Point point, Packet packet) {
-        System.out.println(++count);
         for (int i = 0; i < packet.getWidth(); i++) {
             for (int j = 0; j < packet.getLength(); j++) {
                 int newVal = matrix[point.getPositionX() + i][point.getPositionY() + j] + packet.getHeight();
@@ -118,5 +124,39 @@ public class ContainerHolder extends ThreeDObject {
         System.out.println(String.format("Found %d new points.", points.size()));
         freePoints.addAll(points);
         return !points.isEmpty();
+    }
+
+    /**
+     * Insert empty blocks to lowest height possible in attempt to create bigger flat surfaces
+     *
+     * @return {@code true} if empty blocks were inserted, {@code false} otherwise
+     */
+    public boolean insertEmptyBlocks() {
+        // calculating unique heights
+        Set<Integer> heights = new HashSet<>();
+        Arrays.stream(matrix).parallel()
+              .forEach(i -> heights.addAll(Arrays.stream(i).boxed().collect(Collectors.toSet())));
+        System.out.println("Height in matrix: " + heights);
+
+        if (heights.size() <= 1) { return false; }
+
+        int minHeight = heights.stream().flatMapToInt(IntStream::of).min().orElse(-1);
+        int nextHeight = heights.stream().filter(h -> h != minHeight).flatMapToInt(IntStream::of).min().orElse(-1);
+
+        if (minHeight == -1 || nextHeight == -1) {
+            return false;
+        }
+        int diff = nextHeight - minHeight;
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < length; j++) {
+                if (matrix[i][j] == minHeight) {
+                    matrix[i][j] = nextHeight;
+                    volumeOfEmptyPackets += diff;
+                }
+            }
+        }
+        System.out.println(String.format("Increased height of level %d to level %d.", minHeight, nextHeight));
+        scanForNewFreePoints();
+        return true;
     }
 }

@@ -14,14 +14,15 @@ import java.util.Comparator;
 import java.util.List;
 
 public class GreedyPacking implements ContainerPackingAlgorithm {
-    private boolean notFound = true;
+
+    private static final int NUMBER_OF_TRIES = 1000;
 
     @Override
     public PackingResult pack(Container container, final List<Packet> entryPacketList) {
         int count = 0;
         ContainerHolder maxResult = null;
         ContainerHolder containerHolder = null;
-        while (count < 1000) {
+        while (count < NUMBER_OF_TRIES) {
             count++;
             if (containerHolder != null && containerHolder.count > maxResult.count) {
                 maxResult = containerHolder;
@@ -32,15 +33,23 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
             try {
                 List<Packet> unpacked = new ArrayList<>();
                 int unpackedIndex;
+                // pack each item
                 for (int i = 0; i < packetList.size(); i++) {
                     Packet packet = packetList.get(i);
                     boolean secondTry = false;
+                    // try 6 possible orientations
                     for (int j = 0; j < 6; j++) {
                         Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, j);
                         List<Point> points = containerHolder.getAvailableStartPositions(vector);
                         if (points.isEmpty()) {
                             System.out.println("Changing orientation");
                             if (j == 5) {
+//                                if (secondTry) {
+//                                    if (containerHolder.insertEmptyBlocks()) {
+//                                        j = -1;
+//                                        continue;
+//                                    }
+//                                }
                                 if (!secondTry && containerHolder.scanForNewFreePoints()) {
                                     j = -1;
                                     secondTry = true;
@@ -62,11 +71,8 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
                         }
                     }
                 }
-                notFound = false;
                 return new PackingResult(containerHolder, null);
             } catch (Exception e) {
-
-                notFound = true;
             }
         }
         return new PackingResult(maxResult, null);
