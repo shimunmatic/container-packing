@@ -2,10 +2,7 @@ package hr.fer.shimun.packing.implementation;
 
 import hr.fer.shimun.packing.ContainerPackingAlgorithm;
 import hr.fer.shimun.packing.implementation.model.ContainerHolder;
-import hr.fer.shimun.packing.model.Container;
-import hr.fer.shimun.packing.model.Packet;
-import hr.fer.shimun.packing.model.PackingResult;
-import hr.fer.shimun.packing.model.Point;
+import hr.fer.shimun.packing.model.*;
 import hr.fer.shimun.packing.util.Vector;
 
 import java.util.ArrayList;
@@ -24,11 +21,11 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
         ContainerHolder containerHolder = null;
         while (count < NUMBER_OF_TRIES) {
             count++;
-            if (containerHolder != null && containerHolder.count > maxResult.count) {
+            if (containerHolder != null && containerHolder.getCount() > maxResult.getCount()) {
                 maxResult = containerHolder;
             }
             containerHolder = new ContainerHolder(container.getHeight(), container.getWidth(), container.getLength());
-            List<Packet> packetList = getPacketList(entryPacketList);
+            List<Packet> packetList = getPacketList(entryPacketList, containerHolder);
             if (maxResult == null) { maxResult = containerHolder; }
             try {
                 List<Packet> unpacked = new ArrayList<>();
@@ -44,12 +41,12 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
                         if (points.isEmpty()) {
                             System.out.println("Changing orientation");
                             if (j == 5) {
-//                                if (secondTry) {
-//                                    if (containerHolder.insertEmptyBlocks()) {
-//                                        j = -1;
-//                                        continue;
-//                                    }
-//                                }
+                                if (secondTry) {
+                                    if (containerHolder.insertEmptyBlocks()) {
+                                        j = -1;
+                                        continue;
+                                    }
+                                }
                                 if (!secondTry && containerHolder.scanForNewFreePoints()) {
                                     j = -1;
                                     secondTry = true;
@@ -78,16 +75,19 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
         return new PackingResult(maxResult, null);
     }
 
-    private List<Packet> getPacketList(List<Packet> packetList) {
+    private List<Packet> getPacketList(List<Packet> packetList, ContainerHolder containerHolder) {
         List<Packet> pList = new ArrayList<>();
-        packetList.sort(Comparator.comparingInt(value -> value.getHeight() * value.getWidth() * value.getLength()));
+        packetList.sort(Comparator.comparingInt(ThreeDObject::getVolume));
         Collections.reverse(packetList);
+        int volume = 0;
         for (Packet packet : packetList) {
+            volume += packet.getVolume() * packet.getPacketCount();
             for (int i = 0; i < packet.getPacketCount(); i++) {
                 pList.add(new Packet(packet.getHeight(), packet.getWidth(), packet.getLength(), packet.getBoxTypeId(),
                         packet.getPacketCount()));
             }
         }
+        containerHolder.setPacketsVolume(volume);
         return pList;
     }
 

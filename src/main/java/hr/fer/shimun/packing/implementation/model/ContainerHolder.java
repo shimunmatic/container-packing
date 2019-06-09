@@ -20,9 +20,10 @@ public class ContainerHolder extends ThreeDObject {
     private Set<Point> freePoints;
     private Map<Point, Packet> packedPackets;
     private List<Packet> unPackedPackets;
+    private int packetsVolume = 0;
     private int volumeOfEmptyPackets = 0;
     private int[][] matrix;
-    public int count = 0;
+    private int count = 0;
     private static final Logger logger = LoggerFactory.getLogger(ContainerHolder.class);
 
 
@@ -60,6 +61,7 @@ public class ContainerHolder extends ThreeDObject {
     }
 
     public void addPacketToPoint(Packet packet, Point point) {
+        count++;
         packedPackets.put(point, packet);
         fillMatrix(point, packet);
         freePoints.remove(point);

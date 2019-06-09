@@ -24,6 +24,12 @@ public class ConsolePrinter implements ContainerPrinter {
             sb.append("\n");
         }
         System.out.println(sb.toString());
-        System.out.println(total - volumeOfEmptyPackets);
+        System.out.println(String.format("%s Summary %s", "=".repeat(20), "=".repeat(20)));
+        System.out.println("Total volume of container: " + containerHolder.getVolume());
+        System.out.println("Total volume of packets: " + containerHolder.getPacketsVolume());
+        System.out.println("Total volume of inserted packets: " + (total - volumeOfEmptyPackets));
+        System.out.println("Percentage of inserted volume: " +
+                           ((double) (total - volumeOfEmptyPackets) / containerHolder.getPacketsVolume()));
+        System.out.println("Packed unpacked: " + containerHolder.getUnPackedPackets().size());
     }
 }

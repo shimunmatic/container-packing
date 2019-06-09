@@ -20,4 +20,8 @@ public class ThreeDObject {
         this.length = vector.getY();
         this.height = vector.getZ();
     }
+
+    public int getVolume() {
+        return height * width * length;
+    }
 }
