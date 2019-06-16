@@ -7,8 +7,6 @@ import hr.fer.shimun.packing.util.Vector;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,12 +18,12 @@ public class ContainerHolder extends ThreeDObject {
     private Set<Point> freePoints;
     private Map<Point, Packet> packedPackets;
     private List<Packet> unPackedPackets;
+    private List<Packet> packetCategories;
     private int packetsVolume = 0;
     private int volumeOfEmptyPackets = 0;
     private int[][] matrix;
     private int count = 0;
-    private static final Logger logger = LoggerFactory.getLogger(ContainerHolder.class);
-
+    private int minimumEdge = 0;
 
     @Builder
     public ContainerHolder(int height, int width, int length) {
@@ -33,6 +31,8 @@ public class ContainerHolder extends ThreeDObject {
         freePoints = new HashSet<>();
         freePoints.add(new Point(height, width, length, 0, 0, 0));
 
+        packetCategories = new ArrayList<>();
+        unPackedPackets = new ArrayList<>();
         packedPackets = new HashMap<>();
         matrix = new int[width][length];
     }
@@ -48,7 +48,9 @@ public class ContainerHolder extends ThreeDObject {
 
     private boolean canBePacked(Point point, Vector<Integer, Integer, Integer> dimensions) {
         int height = matrix[point.getPositionX()][point.getPositionY()];
-        if (point.getPositionZ() < height) { return false; }
+        if (point.getPositionZ() < height) {
+            return false;
+        }
         for (int i = 0; i < dimensions.getX(); i++) {
             for (int j = 0; j < dimensions.getY(); j++) {
                 if (matrix[point.getPositionX() + i][point.getPositionY() + j] != height ||
@@ -84,7 +86,7 @@ public class ContainerHolder extends ThreeDObject {
                                 .positionZ(point.getPositionZ() + packet.getHeight()).height(packet.getHeight())
                                 .width(packet.getWidth()).length(packet.getLength()).build());
         }
-        System.out.println("Inserted");
+        System.out.println("Inserted category: " + packet.getBoxTypeId());
     }
 
     private void fillMatrix(Point point, Packet packet) {
@@ -123,7 +125,6 @@ public class ContainerHolder extends ThreeDObject {
         }
 
         freePoints.clear();
-        System.out.println(String.format("Found %d new points.", points.size()));
         freePoints.addAll(points);
         return !points.isEmpty();
     }
@@ -135,9 +136,7 @@ public class ContainerHolder extends ThreeDObject {
      */
     public boolean insertEmptyBlocks() {
         // calculating unique heights
-        Set<Integer> heights = new HashSet<>();
-        Arrays.stream(matrix).parallel()
-              .forEach(i -> heights.addAll(Arrays.stream(i).boxed().collect(Collectors.toSet())));
+        Set<Integer> heights = getUniqueHeights();
         System.out.println("Height in matrix: " + heights);
 
         if (heights.size() <= 1) { return false; }
@@ -148,6 +147,8 @@ public class ContainerHolder extends ThreeDObject {
         if (minHeight == -1 || nextHeight == -1) {
             return false;
         }
+
+        if (nextHeight + minimumEdge > height) { return false; }
         int diff = nextHeight - minHeight;
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < length; j++) {
@@ -160,5 +161,22 @@ public class ContainerHolder extends ThreeDObject {
         System.out.println(String.format("Increased height of level %d to level %d.", minHeight, nextHeight));
         scanForNewFreePoints();
         return true;
+    }
+
+    public Set<Integer> getUniqueHeights() {
+        Set<Integer> heights = new HashSet<>();
+        Arrays.stream(matrix).parallel()
+              .forEach(i -> heights.addAll(Arrays.stream(i).boxed().collect(Collectors.toSet())));
+        return heights;
+    }
+
+    public void addPacketCategory(Packet category) {
+        packetCategories.add(category);
+        int minEdge =
+                IntStream.builder().add(category.getLength()).add(category.getHeight()).add(category.getWidth()).build()
+                         .min().orElse(-1);
+        if (minimumEdge == 0 || (minEdge != -1 && minEdge < minimumEdge)) {
+            minimumEdge = minEdge;
+        }
     }
 }

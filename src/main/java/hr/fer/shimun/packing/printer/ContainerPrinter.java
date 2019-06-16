@@ -1,7 +1,7 @@
-package hr.fer.shimun.packing.model;
+package hr.fer.shimun.packing.printer;
 
 import hr.fer.shimun.packing.implementation.model.ContainerHolder;
 
 public interface ContainerPrinter {
-    void print(ContainerHolder containerHolder);
+    String print(ContainerHolder containerHolder);
 }

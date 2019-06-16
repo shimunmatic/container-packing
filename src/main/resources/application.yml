@@ -1,0 +1,12 @@
+heuristic:
+  function:
+    grader:
+      coefficient:
+        method:
+          collective: 1
+          zeros: 0
+          heights: 30
+          axis:
+            x: 0
+            y: 0
+            z: 0

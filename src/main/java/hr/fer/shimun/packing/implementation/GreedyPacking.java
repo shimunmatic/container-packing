@@ -1,78 +1,66 @@
 package hr.fer.shimun.packing.implementation;
 
 import hr.fer.shimun.packing.ContainerPackingAlgorithm;
+import hr.fer.shimun.packing.function.HeuristicFunction;
 import hr.fer.shimun.packing.implementation.model.ContainerHolder;
 import hr.fer.shimun.packing.model.*;
 import hr.fer.shimun.packing.util.Vector;
+import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
+@Component
 public class GreedyPacking implements ContainerPackingAlgorithm {
+    private HeuristicFunction heuristicFunction;
 
-    private static final int NUMBER_OF_TRIES = 1000;
+    public GreedyPacking(HeuristicFunction heuristicFunction) {
+        this.heuristicFunction = heuristicFunction;
+    }
 
     @Override
     public PackingResult pack(Container container, final List<Packet> entryPacketList) {
-        int count = 0;
-        ContainerHolder maxResult = null;
-        ContainerHolder containerHolder = null;
-        while (count < NUMBER_OF_TRIES) {
-            count++;
-            if (containerHolder != null && containerHolder.getCount() > maxResult.getCount()) {
-                maxResult = containerHolder;
-            }
-            containerHolder = new ContainerHolder(container.getHeight(), container.getWidth(), container.getLength());
-            List<Packet> packetList = getPacketList(entryPacketList, containerHolder);
-            if (maxResult == null) { maxResult = containerHolder; }
-            try {
-                List<Packet> unpacked = new ArrayList<>();
-                int unpackedIndex;
-                // pack each item
-                for (int i = 0; i < packetList.size(); i++) {
-                    Packet packet = packetList.get(i);
-                    boolean secondTry = false;
-                    // try 6 possible orientations
-                    for (int j = 0; j < 6; j++) {
-                        Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, j);
-                        List<Point> points = containerHolder.getAvailableStartPositions(vector);
-                        if (points.isEmpty()) {
-                            System.out.println("Changing orientation");
-                            if (j == 5) {
-                                if (secondTry) {
-                                    if (containerHolder.insertEmptyBlocks()) {
-                                        j = -1;
-                                        continue;
-                                    }
-                                }
-                                if (!secondTry && containerHolder.scanForNewFreePoints()) {
-                                    j = -1;
-                                    secondTry = true;
-                                    continue;
-                                }
-                                unpacked.add(packet);
-                                unpackedIndex = i + 1;
-                                for (int k = unpackedIndex; k < packetList.size(); k++) {
-                                    unpacked.add(packetList.get(k));
-                                }
-                                containerHolder.setUnPackedPackets(unpacked);
-                                throw new Exception("");
-                            }
-                        } else {
-                            packet.setDimensionsFromVector(vector);
-                            Collections.shuffle(points);
-                            containerHolder.addPacketToPoint(packet, points.get(0));
-                            break;
-                        }
-                    }
+        ContainerHolder containerHolder;
+        containerHolder = new ContainerHolder(container.getHeight(), container.getWidth(), container.getLength());
+        List<Packet> packetList = getPacketList(entryPacketList, containerHolder);
+        List<Packet> unpacked = new ArrayList<>();
+        List<Packet> currentList = new ArrayList<>(packetList);
+        while (true) {
+            // pack each item
+            for (Packet packet : currentList) {
+                // try 6 possible orientations
+                List<Vector<Point, Double, Integer>> listOfPossiblePositions = new ArrayList<>();
+                containerHolder.scanForNewFreePoints();
+                for (int j = 0; j < 6; j++) {
+                    Vector<Integer, Integer, Integer> vector = getVectorFromPacketAndOrientation(packet, j);
+                    List<Point> points = containerHolder.getAvailableStartPositions(vector);
+                    Map<Point, Double> gradedPoints = heuristicFunction.gradePoints(vector, points, containerHolder);
+                    final int vectorId = j;
+                    gradedPoints.forEach(
+                            (point, grade) -> listOfPossiblePositions.add(new Vector<>(point, grade, vectorId)));
                 }
-                return new PackingResult(containerHolder, null);
-            } catch (Exception e) {
+                if (listOfPossiblePositions.isEmpty()) {
+                    System.out.println("No place");
+                    unpacked.add(packet);
+                } else {
+                    // sort by grades
+                    listOfPossiblePositions.sort((o1, o2) -> {
+                        int result = Double.compare(o2.getY(), o1.getY());
+                        return result == 0 ? Integer.compare(o1.getZ(), o2.getZ()) : result;
+                    });
+                    Vector<Point, Double, Integer> bestOptionVector = listOfPossiblePositions.get(0);
+
+                    packet.setDimensionsFromVector(getVectorFromPacketAndOrientation(packet, bestOptionVector.getZ()));
+                    containerHolder.addPacketToPoint(packet, bestOptionVector.getX());
+                }
             }
+            if (unpacked.size() == 0) { break; }
+            if (!(unpacked.size() != currentList.size() || containerHolder.insertEmptyBlocks())) { break; }
+            currentList.clear();
+            currentList.addAll(unpacked);
+            unpacked.clear();
         }
-        return new PackingResult(maxResult, null);
+        containerHolder.setUnPackedPackets(unpacked);
+        return new PackingResult(containerHolder, unpacked);
     }
 
     private List<Packet> getPacketList(List<Packet> packetList, ContainerHolder containerHolder) {
@@ -82,6 +70,7 @@ public class GreedyPacking implements ContainerPackingAlgorithm {
         int volume = 0;
         for (Packet packet : packetList) {
             volume += packet.getVolume() * packet.getPacketCount();
+            containerHolder.addPacketCategory(packet);
             for (int i = 0; i < packet.getPacketCount(); i++) {
                 pList.add(new Packet(packet.getHeight(), packet.getWidth(), packet.getLength(), packet.getBoxTypeId(),
                         packet.getPacketCount()));
