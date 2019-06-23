@@ -10,10 +10,10 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 
 @Component
-public class GreedyPacking implements ContainerPackingAlgorithm {
+public class ContainerPacking implements ContainerPackingAlgorithm {
     private HeuristicFunction heuristicFunction;
 
-    public GreedyPacking(HeuristicFunction heuristicFunction) {
+    public ContainerPacking(HeuristicFunction heuristicFunction) {
         this.heuristicFunction = heuristicFunction;
     }
 

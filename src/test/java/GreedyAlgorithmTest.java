@@ -2,6 +2,8 @@ import hr.fer.shimun.packing.ContainerPackingAlgorithm;
 import hr.fer.shimun.packing.ContainerPackingSpringBootApplication;
 import hr.fer.shimun.packing.io.IOUtil;
 import hr.fer.shimun.packing.io.InputBasket;
+import hr.fer.shimun.packing.model.Container;
+import hr.fer.shimun.packing.model.Packet;
 import hr.fer.shimun.packing.model.PackingResult;
 import hr.fer.shimun.packing.printer.ConsolePrinter;
 import org.junit.Test;
@@ -28,8 +30,9 @@ public class GreedyAlgorithmTest {
     public void testGettingEmptySpace() throws IOException {
         File f = IOUtilTest.getTestFile("1");
         List<InputBasket> ib = IOUtil.loadInputData(f);
-
-        PackingResult pr = packingAlgorithm.pack(ib.get(0).getContainer(), ib.get(0).getPacketList());
+        Container container = ib.get(0).getContainer();
+        List<Packet> packets = ib.get(0).getPacketList();
+        PackingResult pr = packingAlgorithm.pack(container, packets);
         System.out.println(new ConsolePrinter().print(pr.getContainerHolder()));
     }
 }
